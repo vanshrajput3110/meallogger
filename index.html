@@ -1,0 +1,724 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Meal & Calorie Logger</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #4f46e5;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .progress-bar-fill {
+            transition: width 0.5s ease-in-out;
+        }
+        .modal-backdrop {
+            background-color: rgba(0,0,0,0.5);
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800">
+
+    <!-- Profile Modal -->
+    <div id="profile-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop">
+        <div class="bg-white w-full max-w-md p-6 rounded-2xl shadow-2xl transform transition-all" id="profile-modal-content">
+             <h2 class="text-2xl font-bold text-slate-800 mb-1">Your Profile</h2>
+             <p class="text-slate-500 mb-6">Let's set up your profile to personalize your goals.</p>
+             <form id="profile-form" class="space-y-4">
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="profile-name" class="block text-sm font-medium text-slate-600">Name</label>
+                        <input type="text" id="profile-name" class="mt-1 w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                    </div>
+                    <div>
+                        <label for="profile-age" class="block text-sm font-medium text-slate-600">Age</label>
+                        <input type="number" id="profile-age" class="mt-1 w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                    </div>
+                </div>
+                 <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="profile-height" class="block text-sm font-medium text-slate-600">Height (cm)</label>
+                        <input type="number" id="profile-height" class="mt-1 w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                    </div>
+                    <div>
+                        <label for="profile-weight" class="block text-sm font-medium text-slate-600">Weight (kg)</label>
+                        <input type="number" id="profile-weight" class="mt-1 w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                    </div>
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                     <div>
+                        <label for="profile-gender" class="block text-sm font-medium text-slate-600">Gender</label>
+                        <select id="profile-gender" class="mt-1 w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                            <option value="male">Male</option>
+                            <option value="female">Female</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="profile-activity-level" class="block text-sm font-medium text-slate-600">Activity Level</label>
+                        <select id="profile-activity-level" class="mt-1 w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                            <option value="1.2">Sedentary</option>
+                            <option value="1.375" selected>Lightly Active</option>
+                            <option value="1.55">Moderately Active</option>
+                            <option value="1.725">Active</option>
+                            <option value="1.9">Very Active</option>
+                        </select>
+                    </div>
+                </div>
+                 <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label for="profile-target-weight" class="block text-sm font-medium text-slate-600">Target Weight (kg)</label>
+                        <input type="number" id="profile-target-weight" class="mt-1 w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                    </div>
+                     <div>
+                        <label for="profile-goal-timeframe" class="block text-sm font-medium text-slate-600">Timeframe (weeks)</label>
+                        <input type="number" id="profile-goal-timeframe" class="mt-1 w-full px-3 py-2 bg-slate-100 border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" required min="1">
+                    </div>
+                </div>
+                <div id="bmi-results" class="text-center bg-slate-50 p-4 rounded-lg hidden space-y-1">
+                    <p class="text-sm text-slate-600">Your BMI is <span id="bmi-value" class="font-bold">--</span> (<span id="bmi-category" class="font-semibold">--</span>)</p>
+                    <p class="text-sm text-slate-600">Required Daily Goal: <span id="estimated-calories" class="font-bold text-indigo-600">-- kcal</span></p>
+                </div>
+                 <div class="pt-2">
+                    <button type="submit" class="w-full bg-indigo-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200">
+                        Save Profile & Start
+                    </button>
+                 </div>
+             </form>
+        </div>
+    </div>
+
+    <div class="container mx-auto p-4 md:p-8 max-w-3xl">
+        
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-indigo-700">AI Meal Logger</h1>
+            <p class="text-slate-500 mt-2">Log your meals with AI and track your nutrition goals.</p>
+        </header>
+
+        <main id="app-container" class="hidden space-y-8">
+            
+            <!-- Main Dashboard -->
+            <section class="bg-white p-6 rounded-2xl shadow-lg">
+                <div class="flex justify-between items-center mb-1">
+                    <h2 id="dashboard-date-title" class="text-2xl font-bold text-slate-800">Today's Dashboard</h2>
+                    <div class="flex items-center gap-2">
+                        <button id="prev-day-btn" title="Previous Day" class="p-2 rounded-full bg-slate-200 hover:bg-slate-300 transition-colors">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clip-rule="evenodd" /></svg>
+                        </button>
+                        <button id="today-btn" class="px-3 py-1 text-sm bg-indigo-100 text-indigo-700 rounded-md hover:bg-indigo-200 transition-colors hidden">Today</button>
+                        <button id="next-day-btn" title="Next Day" class="p-2 rounded-full bg-slate-200 hover:bg-slate-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clip-rule="evenodd" /></svg>
+                        </button>
+                    </div>
+                </div>
+                <p id="welcome-message" class="text-sm text-slate-500 mb-4"></p>
+
+
+                <!-- Calorie Progress Bar -->
+                <div class="space-y-2">
+                    <div class="flex justify-between font-semibold">
+                        <span id="consumed-calories-display" class="text-indigo-600">0 kcal</span>
+                        <span id="remaining-calories-display" class="text-slate-500">0 kcal remaining</span>
+                    </div>
+                    <div class="w-full bg-slate-200 rounded-full h-4">
+                        <div id="progress-bar" class="bg-indigo-600 h-4 rounded-full progress-bar-fill" style="width: 0%"></div>
+                    </div>
+                </div>
+
+                <!-- Nutrient Split -->
+                <div class="grid grid-cols-3 gap-4 text-center mt-6 border-t border-slate-200 pt-4">
+                    <div>
+                        <p class="text-sm text-slate-500">Protein</p>
+                        <p id="protein-total" class="text-xl font-bold text-green-600">0g</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-500">Carbs</p>
+                        <p id="carbs-total" class="text-xl font-bold text-orange-500">0g</p>
+                    </div>
+                    <div>
+                        <p class="text-sm text-slate-500">Fat</p>
+                        <p id="fat-total" class="text-xl font-bold text-yellow-500">0g</p>
+                    </div>
+                </div>
+            </section>
+
+            <!-- AI Meal Logger -->
+            <section class="bg-white p-6 rounded-2xl shadow-lg">
+                <h2 class="text-2xl font-bold text-slate-800 mb-4">Log a Meal</h2>
+                <form id="meal-log-form">
+                    <label for="meal-input" class="block text-sm font-medium text-slate-600 mb-2">Describe your meal (e.g., "2 rotis, 1 katori of dal makhani, and a side salad")</label>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input type="text" id="meal-input" placeholder="Enter meal description..." class="flex-grow px-4 py-3 bg-white border border-slate-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                        <button type="submit" id="analyze-btn" class="bg-indigo-600 text-white font-semibold py-3 px-6 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-200 flex items-center justify-center">
+                            <span id="analyze-btn-text">Analyze Meal</span>
+                            <div id="analyze-btn-loader" class="loader hidden" style="width:20px; height:20px; border-width:2px; margin:0;"></div>
+                        </button>
+                    </div>
+                </form>
+                <div id="meal-log-results" class="hidden mt-6 bg-slate-50 p-4 rounded-lg border"></div>
+            </section>
+
+            <!-- Daily Log History -->
+            <section class="bg-white p-6 rounded-2xl shadow-lg">
+                <h2 id="log-history-title" class="text-2xl font-bold text-slate-800 mb-4">Today's Log</h2>
+                <div id="daily-log-container" class="space-y-4">
+                    <p id="no-meals-message" class="text-center text-slate-500 py-4">No meals logged for this day yet.</p>
+                </div>
+            </section>
+        </main>
+
+        <div id="auth-loading" class="text-center p-8">
+            <div class="loader mx-auto"></div>
+            <p class="text-slate-500 mt-4">Initializing your logger...</p>
+        </div>
+        
+        <footer class="text-center mt-6">
+             <div class="flex justify-center items-center gap-2">
+                <p id="user-id-display" class="text-xs text-slate-400"></p>
+                <button id="edit-profile-btn" class="text-xs text-indigo-500 hover:underline">Edit Profile</button>
+            </div>
+        </footer>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getFirestore, doc, onSnapshot, setDoc, getDoc, increment, collection, query, where, getDocs, addDoc, serverTimestamp, updateDoc, orderBy, limit } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+
+        // --- CONFIGURATION ---
+        const placeholderConfig = {
+              apiKey: "AIzaSyDgrY150_Z7z4-erOI1xWu9_ODNE3uZm1A",
+              authDomain: "meal-logger-4fe60.firebaseapp.com",
+              projectId: "meal-logger-4fe60",
+              storageBucket: "meal-logger-4fe60.firebasestorage.app",
+              messagingSenderId: "702073140512",
+              appId: "1:702073140512:web:06de127a8dc99a71b01345",
+              measurementId: "G-F1RX83FCMP"
+        };
+
+        const firebaseConfig = typeof __firebase_config !== 'undefined' && __firebase_config !== '{}'
+            ? JSON.parse(__firebase_config)
+            : placeholderConfig;
+        
+        const appId = typeof __app_id !== 'undefined' ? __app_id : firebaseConfig.projectId || 'ai-meal-logger-app';
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+
+        // --- FIREBASE & APP STATE ---
+        let app, db, auth, userId, isAuthReady = false;
+        let userProfile = {};
+        let selectedDate = new Date();
+        let unsubscribeProfile, unsubscribeDailyLog;
+
+        // --- DOM ELEMENTS ---
+        const authLoadingDiv = document.getElementById('auth-loading');
+        const appContainer = document.getElementById('app-container');
+        const profileModal = document.getElementById('profile-modal');
+        const profileForm = document.getElementById('profile-form');
+        const profileName = document.getElementById('profile-name');
+        const profileAge = document.getElementById('profile-age');
+        const profileHeight = document.getElementById('profile-height');
+        const profileWeight = document.getElementById('profile-weight');
+        const profileGender = document.getElementById('profile-gender');
+        const profileActivityLevel = document.getElementById('profile-activity-level');
+        const profileTargetWeight = document.getElementById('profile-target-weight');
+        const profileGoalTimeframe = document.getElementById('profile-goal-timeframe');
+        const bmiResults = document.getElementById('bmi-results');
+        const bmiValue = document.getElementById('bmi-value');
+        const bmiCategory = document.getElementById('bmi-category');
+        const estimatedCalories = document.getElementById('estimated-calories');
+        const welcomeMessage = document.getElementById('welcome-message');
+        const editProfileBtn = document.getElementById('edit-profile-btn');
+        const consumedCaloriesDisplay = document.getElementById('consumed-calories-display');
+        const remainingCaloriesDisplay = document.getElementById('remaining-calories-display');
+        const progressBar = document.getElementById('progress-bar');
+        const proteinTotal = document.getElementById('protein-total');
+        const carbsTotal = document.getElementById('carbs-total');
+        const fatTotal = document.getElementById('fat-total');
+        const mealLogForm = document.getElementById('meal-log-form');
+        const mealInput = document.getElementById('meal-input');
+        const analyzeBtn = document.getElementById('analyze-btn');
+        const analyzeBtnText = document.getElementById('analyze-btn-text');
+        const analyzeBtnLoader = document.getElementById('analyze-btn-loader');
+        const mealLogResults = document.getElementById('meal-log-results');
+        const dailyLogContainer = document.getElementById('daily-log-container');
+        const noMealsMessage = document.getElementById('no-meals-message');
+        const userIdDisplay = document.getElementById('user-id-display');
+        const dashboardDateTitle = document.getElementById('dashboard-date-title');
+        const logHistoryTitle = document.getElementById('log-history-title');
+        const prevDayBtn = document.getElementById('prev-day-btn');
+        const nextDayBtn = document.getElementById('next-day-btn');
+        const todayBtn = document.getElementById('today-btn');
+
+        // --- FIREBASE INITIALIZATION & AUTH ---
+        try {
+            if (!firebaseConfig.apiKey || firebaseConfig.apiKey === "YOUR_API_KEY") {
+                throw new Error("Firebase config is missing.");
+            }
+            app = initializeApp(firebaseConfig);
+            db = getFirestore(app);
+            auth = getAuth(app);
+
+            onAuthStateChanged(auth, async (user) => {
+                if (user) {
+                    userId = user.uid;
+                    isAuthReady = true;
+                    userIdDisplay.textContent = `User ID: ${userId}`;
+                    initializeAppLogic();
+                } else if (initialAuthToken) {
+                    try { await signInWithCustomToken(auth, initialAuthToken); } catch (e) { await signInAnonymously(auth); }
+                } else {
+                    try { await signInAnonymously(auth); } catch (e) { console.error("Anonymous sign-in failed:", e); }
+                }
+            });
+
+        } catch (e) {
+            console.error("Firebase init failed:", e);
+            authLoadingDiv.innerHTML = `
+                <div class="bg-red-100 border-l-4 border-red-500 text-red-700 p-4 rounded-lg" role="alert">
+                    <p class="font-bold">Configuration Error</p>
+                    <p>Firebase configuration is missing or invalid. Please check your setup.</p>
+                </div>
+            `;
+        }
+
+        // --- APP LOGIC INITIALIZATION ---
+        function initializeAppLogic() {
+            if (!isAuthReady) return;
+            setupEventListeners();
+            listenForProfileUpdates();
+        }
+
+        function setupEventListeners() {
+            profileForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const calculatedCalories = calculateAndShowBmi();
+                if (calculatedCalories) {
+                    const profileData = {
+                        name: profileName.value,
+                        age: parseInt(profileAge.value),
+                        height: parseFloat(profileHeight.value),
+                        weight: parseFloat(profileWeight.value),
+                        gender: profileGender.value,
+                        activityLevel: parseFloat(profileActivityLevel.value),
+                        targetWeight: parseFloat(profileTargetWeight.value),
+                        goalTimeframe: parseInt(profileGoalTimeframe.value),
+                        dailyCalorieGoal: calculatedCalories
+                    };
+                    const profileRef = doc(db, 'artifacts', appId, 'users', userId);
+                    await setDoc(profileRef, profileData, { merge: true });
+                    profileModal.classList.add('hidden');
+                }
+            });
+            
+            ['height', 'weight', 'age', 'target-weight', 'goal-timeframe', 'gender', 'activity-level'].forEach(id => {
+                document.getElementById(`profile-${id}`).addEventListener('input', calculateAndShowBmi);
+            });
+
+            editProfileBtn.addEventListener('click', () => {
+                profileName.value = userProfile.name || '';
+                profileAge.value = userProfile.age || '';
+                profileHeight.value = userProfile.height || '';
+                profileWeight.value = userProfile.weight || '';
+                profileGender.value = userProfile.gender || 'male';
+                profileActivityLevel.value = userProfile.activityLevel || '1.375';
+                profileTargetWeight.value = userProfile.targetWeight || '';
+                profileGoalTimeframe.value = userProfile.goalTimeframe || '';
+                calculateAndShowBmi();
+                profileModal.classList.remove('hidden');
+            });
+
+            prevDayBtn.addEventListener('click', () => {
+                selectedDate.setDate(selectedDate.getDate() - 1);
+                updateDateView();
+            });
+
+            nextDayBtn.addEventListener('click', () => {
+                selectedDate.setDate(selectedDate.getDate() + 1);
+                updateDateView();
+            });
+
+            todayBtn.addEventListener('click', () => {
+                selectedDate = new Date();
+                updateDateView();
+            });
+
+            mealLogForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const mealDescription = mealInput.value.trim();
+                if (!mealDescription) return;
+
+                analyzeBtn.disabled = true;
+                analyzeBtnText.classList.add('hidden');
+                analyzeBtnLoader.classList.remove('hidden');
+                mealLogResults.classList.add('hidden');
+                
+                try {
+                    const result = await getMealAnalysis(mealDescription);
+                    displayMealAnalysis(result, mealDescription);
+                } catch (error) {
+                    console.error("Meal analysis failed:", error);
+                    mealLogResults.innerHTML = `<p class="text-red-500 text-center">Sorry, something went wrong while analyzing your meal. Please try again. Error: ${error.message}</p>`;
+                    mealLogResults.classList.remove('hidden');
+                } finally {
+                    analyzeBtn.disabled = false;
+                    analyzeBtnText.classList.remove('hidden');
+                    analyzeBtnLoader.classList.add('hidden');
+                }
+            });
+
+            dailyLogContainer.addEventListener('click', (e) => {
+                const logAgainBtn = e.target.closest('.log-again-btn');
+                if (logAgainBtn) {
+                    const description = logAgainBtn.dataset.description;
+                    mealInput.value = description;
+                    mealLogForm.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+                    window.scrollTo({ top: mealLogForm.offsetTop, behavior: 'smooth' });
+                    return;
+                }
+
+                const deleteBtn = e.target.closest('.delete-meal-btn');
+                if (deleteBtn) {
+                    const loggedAtMillis = deleteBtn.dataset.loggedAt;
+                    if (loggedAtMillis) {
+                        deleteMealFromLog(parseInt(loggedAtMillis));
+                    }
+                }
+            });
+        }
+        
+        // --- PROFILE & BMI CALCULATION ---
+        function calculateAndShowBmi() {
+            const height = parseFloat(profileHeight.value) || 0;
+            const weight = parseFloat(profileWeight.value) || 0;
+            const age = parseInt(profileAge.value) || 0;
+            const gender = profileGender.value;
+            const activityLevel = parseFloat(profileActivityLevel.value) || 0;
+            const targetWeight = parseFloat(profileTargetWeight.value) || 0;
+            const goalWeeks = parseInt(profileGoalTimeframe.value) || 0;
+
+            if (height > 0 && weight > 0) {
+                const heightInMeters = height / 100;
+                const bmi = weight / (heightInMeters * heightInMeters);
+                bmiValue.textContent = bmi.toFixed(1);
+                
+                let category = 'Unknown';
+                if (bmi < 18.5) category = 'Underweight';
+                else if (bmi < 24.9) category = 'Normal';
+                else if (bmi < 29.9) category = 'Overweight';
+                else category = 'Obese';
+                bmiCategory.textContent = category;
+
+                if (age > 0 && targetWeight > 0 && goalWeeks > 0 && gender && activityLevel > 0) {
+                    let bmr;
+                    if (gender === 'male') {
+                        bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5;
+                    } else { 
+                        bmr = (10 * weight) + (6.25 * height) - (5 * age) - 161;
+                    }
+                    const tdee = bmr * activityLevel;
+                    const weightDiff = targetWeight - weight;
+                    const weeklyWeightChange = weightDiff / goalWeeks;
+                    const calorieAdjustment = weeklyWeightChange * 1100;
+                    const targetCalories = Math.round(tdee + calorieAdjustment);
+
+                    estimatedCalories.textContent = `${targetCalories} kcal`;
+                    bmiResults.classList.remove('hidden');
+                    return targetCalories;
+                }
+            }
+            
+            bmiResults.classList.add('hidden');
+            return null;
+        }
+
+        // --- GEMINI API CALL ---
+        async function getMealAnalysis(mealDescription) {
+            const prompt = `As an expert on Indian cuisine and nutrition, analyze the following meal: "${mealDescription}". Provide a grand total range for calories, protein, carbs, and fat for the entire meal. Finally, include a "notes" section explaining your assumptions. Respond ONLY with a valid JSON object matching this schema. Be realistic with the numbers.`;
+            const schema = { type: "OBJECT", properties: { total_calories_min: { type: "NUMBER" }, total_calories_max: { type: "NUMBER" }, total_protein_min: { type: "NUMBER" }, total_protein_max: { type: "NUMBER" }, total_carbs_min: { type: "NUMBER" }, total_carbs_max: { type: "NUMBER" }, total_fat_min: { type: "NUMBER" }, total_fat_max: { type: "NUMBER" }, notes: { type: "STRING" } }, required: ["total_calories_min", "total_calories_max", "total_protein_min", "total_protein_max", "total_carbs_min", "total_carbs_max", "total_fat_min", "total_fat_max", "notes"] };
+            const payload = { contents: [{ role: "user", parts: [{ text: prompt }] }], generationConfig: { responseMimeType: "application/json", responseSchema: schema } };
+            const apiKey = "AIzaSyDFP1kAKgFBV2uKYL9ej8w6H8NE4MRQCDI"
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+            
+            const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+            if (!response.ok) {
+                 const errorBody = await response.text();
+                 console.error("API Error Response:", errorBody);
+                 throw new Error(`API call failed: ${response.status}`);
+            }
+            const result = await response.json();
+            if (result.candidates?.[0]?.content?.parts?.[0]) {
+                return JSON.parse(result.candidates[0].content.parts[0].text);
+            }
+            if (result.promptFeedback?.blockReason) {
+                 throw new Error(`Request was blocked: ${result.promptFeedback.blockReason}`);
+            }
+            throw new Error("Invalid API response structure.");
+        }
+
+        // --- FIRESTORE LISTENERS ---
+        function listenForProfileUpdates() {
+            if (unsubscribeProfile) unsubscribeProfile();
+            const profileRef = doc(db, 'artifacts', appId, 'users', userId);
+            unsubscribeProfile = onSnapshot(profileRef, (doc) => {
+                authLoadingDiv.classList.add('hidden');
+                if (doc.exists() && doc.data().name) {
+                    userProfile = doc.data();
+                    appContainer.classList.remove('hidden');
+                    profileModal.classList.add('hidden');
+                    updateDateView();
+                } else {
+                    appContainer.classList.add('hidden');
+                    profileModal.classList.remove('hidden');
+                }
+            }, (error) => {
+                console.error("Firestore listener failed:", error);
+                authLoadingDiv.classList.add('hidden');
+                profileModal.classList.remove('hidden');
+            });
+        }
+
+        function listenForDailyLogUpdates() {
+            if (unsubscribeDailyLog) unsubscribeDailyLog();
+            
+            const dateId = selectedDate.toISOString().split('T')[0];
+            const dailyLogRef = doc(db, 'artifacts', appId, 'users', userId, 'dailyLogs', dateId);
+            
+            unsubscribeDailyLog = onSnapshot(dailyLogRef, (docSnap) => {
+                const data = docSnap.exists() ? docSnap.data() : null;
+                updateDashboardUI(data);
+                updateDailyLogHistoryUI(data ? data.meals : []);
+            });
+        }
+
+        // --- UI & DATE MANAGEMENT ---
+        function updateDateView() {
+            updateDateUI();
+            listenForDailyLogUpdates();
+        }
+
+        function updateDateUI() {
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            selectedDate.setHours(0,0,0,0);
+
+            let title = '';
+            if (selectedDate.getTime() === today.getTime()) {
+                title = "Today's";
+                todayBtn.classList.add('hidden');
+            } else {
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                yesterday.setHours(0,0,0,0);
+                if (selectedDate.getTime() === yesterday.getTime()) {
+                    title = "Yesterday's";
+                } else {
+                    title = selectedDate.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+                }
+                todayBtn.classList.remove('hidden');
+            }
+            
+            dashboardDateTitle.textContent = `${title} Dashboard`;
+            logHistoryTitle.textContent = `${title} Log`;
+
+            nextDayBtn.disabled = selectedDate >= new Date().setHours(0,0,0,0);
+        }
+
+        function updateDashboardUI(data) {
+            const dailyGoal = userProfile.dailyCalorieGoal || 2000;
+            welcomeMessage.textContent = userProfile.name ? `Welcome back, ${userProfile.name}!` : '';
+
+            const consumed = data ? data.totalCalories || 0 : 0;
+            const protein = data ? data.totalProtein || 0 : 0;
+            const carbs = data ? data.totalCarbs || 0 : 0;
+            const fat = data ? data.totalFat || 0 : 0;
+            const remaining = dailyGoal - consumed;
+            const progress = dailyGoal > 0 ? Math.min((consumed / dailyGoal) * 100, 100) : 0;
+
+            consumedCaloriesDisplay.textContent = `${consumed.toFixed(0)} kcal consumed`;
+            remainingCaloriesDisplay.textContent = `${Math.max(0, remaining).toFixed(0)} kcal remaining`;
+            progressBar.style.width = `${progress}%`;
+            proteinTotal.textContent = `${protein.toFixed(0)}g`;
+            carbsTotal.textContent = `${carbs.toFixed(0)}g`;
+            fatTotal.textContent = `${fat.toFixed(0)}g`;
+        }
+
+        function updateDailyLogHistoryUI(meals = []) {
+            dailyLogContainer.innerHTML = '';
+            if (meals.length === 0) {
+                dailyLogContainer.appendChild(noMealsMessage);
+                return;
+            }
+            
+            meals.slice().reverse().forEach(meal => {
+                const mealCard = document.createElement('div');
+                mealCard.className = 'bg-slate-50 p-4 rounded-lg border flex justify-between items-center';
+                mealCard.innerHTML = `
+                    <div class="flex-grow">
+                        <p class="font-semibold text-slate-700">${meal.mealText}</p>
+                        <div class="text-xs text-slate-500 mt-1">
+                            P: ${meal.protein.toFixed(0)}g • C: ${meal.carbs.toFixed(0)}g • F: ${meal.fat.toFixed(0)}g
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4 ml-4">
+                        <div class="text-right">
+                            <p class="font-bold text-indigo-600">${meal.calories.toFixed(0)} kcal</p>
+                            <button class="log-again-btn text-xs text-indigo-500 hover:underline" data-description="${meal.mealText}">Log Again</button>
+                        </div>
+                        <button title="Delete Meal" class="delete-meal-btn text-slate-400 hover:text-red-500 transition-colors p-1" data-logged-at="${meal.loggedAt.toMillis()}">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
+                                <path fill-rule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm4 0a1 1 0 012 0v6a1 1 0 11-2 0V8z" clip-rule="evenodd" />
+                            </svg>
+                        </button>
+                    </div>
+                `;
+                dailyLogContainer.appendChild(mealCard);
+            });
+        }
+
+        function displayMealAnalysis(data, mealDescription) {
+            mealLogResults.innerHTML = `
+                <div class="space-y-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800">Estimated Calorie Range</h3>
+                        <p class="font-extrabold text-indigo-600 text-2xl text-center my-4">
+                            ≈ ${data.total_calories_min.toFixed(0)} - ${data.total_calories_max.toFixed(0)} kcal
+                        </p>
+                    </div>
+                     <div class="border-t border-dashed border-slate-300 pt-3 text-xs text-slate-500 italic">
+                        <p><span class="font-semibold">Notes:</span> ${data.notes}</p>
+                    </div>
+                    <div class="border-t border-slate-200 pt-4 space-y-3">
+                         <div class="flex items-center justify-center gap-2">
+                            <label for="log-calories-input" class="text-sm font-semibold">Log as:</label>
+                            <input type="number" id="log-calories-input" class="w-24 bg-white border border-slate-300 rounded-lg px-2 py-1 focus:outline-none focus:ring-2 focus:ring-indigo-500" value="${data.total_calories_min.toFixed(0)}" min="${data.total_calories_min.toFixed(0)}" max="${data.total_calories_max.toFixed(0)}">
+                            <span class="text-sm text-slate-500">kcal</span>
+                        </div>
+                        <p id="log-error-message" class="text-xs text-red-500 text-center mt-1 hidden">Please enter a value within the estimated range.</p>
+                        <div class="flex justify-center gap-4">
+                            <button id="add-meal-btn" class="bg-green-600 text-white font-semibold py-2 px-6 rounded-lg hover:bg-green-700 transition-colors">Add to Log</button>
+                            <button id="clear-results-btn" class="bg-slate-500 text-white font-semibold py-2 px-6 rounded-lg hover:bg-slate-600 transition-colors">Clear</button>
+                        </div>
+                    </div>
+                </div>
+            `;
+            mealLogResults.classList.remove('hidden');
+            
+            document.getElementById('add-meal-btn').addEventListener('click', async () => {
+                const logInput = document.getElementById('log-calories-input');
+                const errorMessage = document.getElementById('log-error-message');
+                const caloriesToLog = parseFloat(logInput.value);
+
+                logInput.classList.remove('border-red-500', 'ring-red-500');
+                errorMessage.classList.add('hidden');
+
+                if (isNaN(caloriesToLog) || caloriesToLog < data.total_calories_min || caloriesToLog > data.total_calories_max) {
+                    logInput.classList.add('border-red-500', 'ring-red-500');
+                    errorMessage.classList.remove('hidden');
+                    return;
+                }
+
+                const calorieRange = data.total_calories_max - data.total_calories_min;
+                const ratio = calorieRange > 0 ? (caloriesToLog - data.total_calories_min) / calorieRange : 0;
+
+                const proteinToLog = data.total_protein_min + (ratio * (data.total_protein_max - data.total_protein_min));
+                const carbsToLog = data.total_carbs_min + (ratio * (data.total_carbs_max - data.total_carbs_min));
+                const fatToLog = data.total_fat_min + (ratio * (data.total_fat_max - data.total_fat_min));
+
+                await addMealToLog(mealDescription, caloriesToLog, proteinToLog, carbsToLog, fatToLog);
+                
+                mealLogResults.innerHTML = `<p class="text-green-600 font-semibold text-center py-4">Successfully added to your daily log!</p>`;
+                setTimeout(() => { 
+                    mealLogResults.classList.add('hidden');
+                    mealInput.value = '';
+                }, 2000);
+            });
+
+            document.getElementById('clear-results-btn').addEventListener('click', () => {
+                mealLogResults.classList.add('hidden');
+                mealInput.value = '';
+            });
+        }
+
+        async function addMealToLog(mealDescription, calories, protein, carbs, fat) {
+            const dateId = selectedDate.toISOString().split('T')[0];
+            const dailyLogRef = doc(db, 'artifacts', appId, 'users', userId, 'dailyLogs', dateId);
+            
+            const mealData = {
+                mealText: mealDescription,
+                calories: calories,
+                protein: protein,
+                carbs: carbs,
+                fat: fat,
+                loggedAt: new Date()
+            };
+
+            const docSnap = await getDoc(dailyLogRef);
+            if (docSnap.exists()) {
+                const existingMeals = docSnap.data().meals || [];
+                await setDoc(dailyLogRef, {
+                    totalCalories: increment(mealData.calories),
+                    totalProtein: increment(mealData.protein),
+                    totalCarbs: increment(mealData.carbs),
+                    totalFat: increment(mealData.fat),
+                    meals: [...existingMeals, mealData]
+                }, { merge: true });
+            } else {
+                await setDoc(dailyLogRef, {
+                    totalCalories: mealData.calories,
+                    totalProtein: mealData.protein,
+                    totalCarbs: mealData.carbs,
+                    totalFat: mealData.fat,
+                    meals: [mealData]
+                });
+            }
+        }
+
+        async function deleteMealFromLog(loggedAtMillis) {
+            const dateId = selectedDate.toISOString().split('T')[0];
+            const dailyLogRef = doc(db, 'artifacts', appId, 'users', userId, 'dailyLogs', dateId);
+
+            try {
+                const docSnap = await getDoc(dailyLogRef);
+                if (!docSnap.exists()) {
+                    console.error("Log document not found for deletion.");
+                    return;
+                }
+
+                const data = docSnap.data();
+                const meals = data.meals || [];
+                const mealToDelete = meals.find(meal => meal.loggedAt.toMillis() === loggedAtMillis);
+
+                if (!mealToDelete) {
+                    console.error("Could not find the meal to delete.", loggedAtMillis);
+                    return;
+                }
+
+                const updatedMeals = meals.filter(meal => meal.loggedAt.toMillis() !== loggedAtMillis);
+
+                await setDoc(dailyLogRef, {
+                    totalCalories: increment(-mealToDelete.calories),
+                    totalProtein: increment(-mealToDelete.protein),
+                    totalCarbs: increment(-mealToDelete.carbs),
+                    totalFat: increment(-mealToDelete.fat),
+                    meals: updatedMeals
+                }, { merge: true });
+
+            } catch (error) {
+                console.error("Error deleting meal:", error);
+            }
+        }
+    </script>
+</body>
+</html>
